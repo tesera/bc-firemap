@@ -1,0 +1,20 @@
+.marker-cluster-small, .marker-cluster-medium, .marker-cluster-large,
+.marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div {
+    color: white;
+    background-color: rgba(2, 136, 209, 0.6);
+}
+
+.leaflet-tooltip {
+    padding: 1px;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    border: none;
+}
+
+.leaflet-tooltip-left:before {
+    border-left-color: rgba(0, 0, 0, 0.8);
+}
+
+.leaflet-tooltip-right:before {
+    border-right-color: rgba(0, 0, 0, 0.8);
+}
