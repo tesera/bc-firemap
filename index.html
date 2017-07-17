@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BC Fire Map</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <link rel='stylesheet' href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.0.6/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.0.6/MarkerCluster.Default.css" />
+    <style type="text/css">
+        html, body {
+            font-family: 'Open Sans', sans-serif;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+        }
+
+        #map {
+            height: calc(100% - 50px);
+            width: 100%;
+        }
+
+        #legend {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            position: absolute;
+            top: 6px;
+            right: 20px;
+            display: flex;
+            z-index: 9999;
+        }
+
+        #legend li {
+            margin: 10px;
+            cursor: pointer;
+        }
+
+        .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large,
+        .marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div {
+            color: white;
+            background-color: rgba(2, 136, 209, 0.6);
+        }
+        .leaflet-tooltip {
+            padding: 1px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            border: none;
+        }
+
+        .leaflet-tooltip-left:before {
+            border-left-color: rgba(0, 0, 0, 0.8);
+        }
+
+        .leaflet-tooltip-right:before {
+            border-right-color: rgba(0, 0, 0, 0.8);
+        }
+
+        header {
+            height: 50px;
+            background-color: white;
+        }
+
+        header h3 {
+            display: inline-block;
+            margin: 12px;
+            padding: 0;
+            color: #0D47A1;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h3>Summer 2017 BC Fire Map</h3>
+        <ul id="legend">
+            <li style="color: rgba(2, 136, 209, 0.6);" class="active" data-tag="#All">
+                <i class="fa fa-check-circle"></i>
+                All Fires
+            </li>
+            <li style="color: red;" data-tag="#Fire of Note">
+                <i class="fa fa-circle-o"></i>
+                Fire of Note
+            </li>
+            <li style="color: orange;" data-tag="#Active">
+                <i class="fa fa-circle-o"></i>
+                Active Fire
+            </li>
+            <li style="color: grey;" data-tag="#New">
+                <i class="fa fa-circle-o"></i>
+                New Fire
+            </li>
+        </ul>
+    </header>
+    <div id="map"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.0.6/leaflet.markercluster.js"></script>
+    <script>
+        // very simple web app that renders bc wildfire data from bc gov rest api
+        // data is fetched from a custom facade api which acts as a proxy
+        // example JSON data: https://gist.github.com/whyvez/6e86ba8e2184cca51a6f2f19295acee6
+        (function (L, $) {
+            var MAPBOX_MAP_ID = 'mapbox.streets';
+            var MAPBOX_API_KEY = 'pk.eyJ1IjoidGVzZXJhIiwiYSI6IktmZ3lKWlEifQ.zKuHBA0THL8kB3IjA6bEnQ';
+            var DEFAULT_MAP_ZOOM = 6;
+            var DEFAULT_MAP_CENTER = [51.883272964437474, -120.50903320312501];
+            var API_HOST = 'https://69u0af5a6a.execute-api.us-east-1.amazonaws.com/dev';
+
+            function getParams(map) {
+                var extent = map.getBounds();
+                var size = map.getSize();
+                return {
+                    extent: extent.toBBoxString(),
+                    level: map.getZoom(),
+                    height: size[1],
+                    width: size[0],
+                    ts: '0.8491840369252301'
+                };
+            }
+
+            function getData(params, callback) {
+                var url = API_HOST + '?' + $.param(params);
+                $.getJSON(url, function (json) {
+                    callback(json);
+                });
+            }
+
+            function refreshCluster(placemarks) {
+                this.clearLayers();
+                var markers = placemarks.map(function (fire) {
+                    var coords = fire.Point.coordinates.split(',');
+                    var colors = {
+                        '#Fire of Note': 'red',
+                        '#Active': 'orange',
+                        '#New': 'grey'
+                    };
+                    var status = fire.styleUrl;
+                    var marker = L.circleMarker([coords[1], coords[0]], { radius: 2, color: colors[status]});
+                    marker.bindPopup(fire.description);
+                    marker.bindTooltip(fire.name, { permanent: true}).openTooltip();
+                    return marker;
+                });
+                this.addLayers(markers);
+            }
+
+            function filterCluster(placemarks, status) {
+                if (status === '#All') {
+                    refreshCluster(placemarks);
+                } else {
+                    var filtered = placemarks.filter(function (p) { return p.styleUrl === status });
+                    refreshCluster(filtered);
+                }
+            }
+
+            var filters = $('#legend li');
+            filters.click(function () {
+                var status = $(this).data('tag');
+
+                filters.filter('.active')
+                    .first()
+                    .find('i.fa')
+                    .removeClass('fa-check-circle')
+                    .addClass('fa-circle-o');
+
+                filters.removeClass('active');
+
+                $(this)
+                    .addClass('active')
+                    .find('i.fa')
+                    .removeClass('fa-circle-o')
+                    .addClass('fa-check-circle');
+
+                filterCluster(status);
+            });
+
+            L.mapbox.accessToken = MAPBOX_API_KEY;
+            L.mapbox.map('map', MAPBOX_MAP_ID)
+                .whenReady(function (argument) {
+                    var map = this;
+                    var cluster = L.markerClusterGroup();
+                    refreshCluster = refreshCluster.bind(cluster);
+                    map.addLayer(cluster);
+
+                    function load() {
+                        var params = getParams(map);
+                        getData(params, function (data) {
+                            var placemarks = data.Document.Placemark;
+                            filterCluster = filterCluster.bind(cluster, placemarks);
+                            refreshCluster(placemarks);
+                        });
+                    }
+
+                    map.on('moveend', load);
+                    load();
+                })
+                .setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM);
+
+        })(L, $);
+    </script>
+</body>
+</html>
