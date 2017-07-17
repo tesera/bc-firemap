@@ -6,15 +6,15 @@
 
 .leaflet-tooltip {
     padding: 1px;
-    background-color: rgba(0, 0, 0, 0.8);
+    background-color: rgba(3, 71, 105, 0.8);
     color: white;
     border: none;
 }
 
 .leaflet-tooltip-left:before {
-    border-left-color: rgba(0, 0, 0, 0.8);
+    border-left-color: rgba(, 71, 105, 0.8);
 }
 
 .leaflet-tooltip-right:before {
-    border-right-color: rgba(0, 0, 0, 0.8);
+    border-right-color: rgba(3, 71, 105, 0.8);
 }
