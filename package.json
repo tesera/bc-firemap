@@ -2,6 +2,10 @@
   "name": "bcfiremap",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "8.0",
+    "npm": "5.0"
+  },
   "dependencies": {
     "components": "^0.1.0",
     "leaflet": "^1.1.0",
