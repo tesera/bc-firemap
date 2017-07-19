@@ -25,14 +25,13 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.0.6/MarkerCluster.Default.css" />
         <script src="https://cdn.ravenjs.com/3.17.0/raven.min.js" crossorigin="anonymous"></script>
         <script type="text/javascript">
-            Raven.config('https://f27f49f2b838496cb3a11d3953358cd0@sentry.io/193540').install()
+            var ravenDSN = 'https://f27f49f2b838496cb3a11d3953358cd0@sentry.io/193540';
+            var ravenOptions = {};
             var release = '%REACT_APP_RELEASE%';
             if (release) {
-                Raven.config('commit', {
-                    release: release
-                });
+                ravenOptions.release = release
             }
-
+            Raven.config(ravenDSN, ravenOptions).install();
         </script>
         <style>
             html, body, #root {
